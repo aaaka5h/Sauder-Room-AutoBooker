@@ -2,13 +2,13 @@ import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
-from user_info import getUBCCredentials, getRepeatBookings
+from user_info import getUBCCredentials, getNumRepeatBookings, getBookings
 # Sauder undergraduate room website
 url = "https://booking.sauder.ubc.ca/ugr"
 
 # UBC Credentials
 username, password = getUBCCredentials()
-repeat_bookings = getRepeatBookings()
+repeat_bookings = getNumRepeatBookings()
 
 # Bookings is (time, hours) tuples for each day of the week, repeat_bookings times
 # e.g.
@@ -16,7 +16,7 @@ repeat_bookings = getRepeatBookings()
 #   [("7:00", 1), ("8:00", 1), ("9:00", 2)], 
 #   [("7:00", 1), ("8:00", 1), ("9:00", 2)]
 #   ...]
-bookings = [[("FILL", 0) for i in range(7)] for j in range(repeat_bookings)]
+bookings = getBookings(repeat_bookings)
 
 # Selenium script starts
 driver = webdriver.Chrome()
@@ -51,19 +51,14 @@ while True:
 
 tbody = driver.find_element(by=By.CSS_SELECTOR, value="tbody")
 rows = tbody.find_elements(by=By.CSS_SELECTOR, value="tr") 
+cell_list_per_row = [row.find_elements(by=By.CSS_SELECTOR, value="td") for row in rows]
+for cells in cell_list_per_row:
+    for cell in cells:
+        if not cell or cell.text == None: continue
+        print("className", cell.get_property("className")) # booking status here
 
 best_free_room = None
 rows.reverse() # best rooms are last so move backwards
-for row in rows:
-    cells = row.find_elements(By.CSS_SELECTOR, value="td")
-    for cell in cells:
-        booking_status = cell.get_attribute("class")
-        if booking_status == "new":
-            best_free_room = cell
-            break
-    if not best_free_room:
-        print("No free room found at requested time :(")
-        break
 
 print(best_free_room)
 
